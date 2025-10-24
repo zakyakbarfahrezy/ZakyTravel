@@ -1,6 +1,6 @@
 <?php
 require_once "config.php";
-if(!isset($_SESSION['user'])){
+if(!isset($_SESSION['user'])) {
   header("Location: login.php");
   exit;
 }
@@ -13,55 +13,47 @@ $stmt = $conn->prepare("SELECT * FROM tours WHERE id=?");
 $stmt->execute([$id]);
 $tour = $stmt->fetch(PDO::FETCH_ASSOC);
 $user = $_SESSION['user'];
-$kode = "INV" . strtoupper(substr(md5(time()), 0, 8));
-$tanggal = date("d M Y, H:i");
+
+if(isset($_POST['beli'])) {
+  $nama = $_POST['nama'];
+  $email = $_POST['email'];
+  $no_hp = $_POST['no_hp'];
+  $jumlah = $_POST['jumlah'];
+  $catatan = $_POST['catatan'];
+
+  $query = $conn->prepare("INSERT INTO pembelian (id_user,id_tour,nama,email,no_hp,jumlah_orang,catatan)
+                           VALUES (?,?,?,?,?,?,?)");
+  $query->execute([$user['id'], $tour['id'], $nama, $email, $no_hp, $jumlah, $catatan]);
+
+  $kode = "INV" . strtoupper(substr(md5(time()), 0, 8));
+  header("Location: invoice.php?kode=$kode&user=" . urlencode($nama) . "&paket=" . urlencode($tour['nama_paket']) . "&harga=" . $tour['harga']);
+  exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Beli Paket - ZakyTravel</title>
+<title>Beli Paket - <?= htmlspecialchars($tour['nama_paket']) ?></title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<div class="checkout-container">
+<div class="form-container">
+  <h2>Form Pembelian Paket</h2>
   <?php if($tour): ?>
-    <div class="checkout-card">
-      <h2>🎉 Pembelian Berhasil!</h2>
-      <p class="success-text">Terima kasih, <strong><?= htmlspecialchars($user['nama']) ?></strong>!</p>
-      <p>Kamu telah membeli paket:</p>
-
-      <div class="tour-summary">
-        <img src="uploads/<?= htmlspecialchars($tour['gambar']) ?>" alt="">
-        <div class="info">
-          <h3><?= htmlspecialchars($tour['nama_paket']) ?></h3>
-          <p><?= htmlspecialchars($tour['deskripsi']) ?></p>
-          <p class="harga">Harga: Rp <?= number_format($tour['harga']); ?></p>
-        </div>
-      </div>
-
-      <p>Kode Booking: <strong><?= $kode ?></strong></p>
-      <p>Tanggal: <?= $tanggal ?></p>
-
-      <div class="next-steps">
-        <h4>Langkah Selanjutnya:</h4>
-        <ul>
-          <li>📧 E-tiket akan dikirim ke email kamu.</li>
-          <li>📞 Tim kami akan menghubungi untuk konfirmasi.</li>
-        </ul>
-      </div>
-
-      <a href="invoice.php?kode=<?= $kode ?>&user=<?= urlencode($user['nama']) ?>&paket=<?= urlencode($tour['nama_paket']) ?>&harga=<?= $tour['harga'] ?>" class="btn">🎫 Lihat Tiket / Invoice</a>
-      <a href="index.php" class="btn">Kembali ke Beranda</a>
-    </div>
+  <p>Paket yang dipilih: <strong><?= htmlspecialchars($tour['nama_paket']) ?></strong></p>
+  <p>Harga: Rp <?= number_format($tour['harga']); ?></p>
+  <form method="post">
+    <input type="text" name="nama" placeholder="Nama Lengkap" required>
+    <input type="email" name="email" placeholder="Email" required>
+    <input type="text" name="no_hp" placeholder="Nomor HP" required>
+    <input type="number" name="jumlah" placeholder="Jumlah Orang" required>
+    <textarea name="catatan" placeholder="Catatan Tambahan (Opsional)"></textarea>
+    <button type="submit" name="beli">Lanjut ke Invoice</button>
+  </form>
   <?php else: ?>
-    <div class="checkout-card">
-      <h2>❌ Paket Tidak Ditemukan</h2>
-      <a href="index.php" class="btn">Kembali</a>
-    </div>
+    <p>Paket tidak ditemukan.</p>
   <?php endif; ?>
 </div>
-
 </body>
 </html>
